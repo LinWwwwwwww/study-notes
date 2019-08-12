@@ -98,3 +98,15 @@
 | 将远程库克隆到本地        | git clone https://github.com/LinWwwwwwww/huashan.git         |
 
 > clone操作：完整库下载到本地；与远程库绑定；初始化本地库。
+
+### 8. SSH免密登录
+
+* 进入当前用户的家目录：cd ~
+* 删除.ssh目录：rm -rvf .ssh
+* 运行命令生成ssh密钥目录：ssh-keygen -t rsa -C [git邮箱]
+* 进入ssh目录查看文件列表：cd .ssh  ->  ls -lf
+* 查看id_rsa.pub文件内容：cat id_rsa.pub
+* 复制id_rsa.pub文件内容登录github，Settings->SSH and GPG keys->New SSH Key->输入复制的密钥信息
+* 回到Git bash（本地库位置）创建远程地址别名：git remote add [远程库的SSH]
+* 推送文件进行测试（先pull在push）
+
