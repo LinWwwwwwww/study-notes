@@ -1,4 +1,4 @@
-# SpringBoot学习笔记
+# SpringBoot
 
 > **version**
 >
@@ -520,6 +520,11 @@ spring:
 	<artifactId>druid</artifactId>
 	<version>1.1.18</version>
 </dependency>
+<dependency>
+        <groupId>log4j</groupId>
+        <artifactId>log4j</artifactId>
+        <version>1.2.17</version>
+</dependency>
 ```
 * 配置Druid
 ```yaml
@@ -656,65 +661,65 @@ public class MybatisConfig {
 * 使用MapperScan批量扫描指定包下的Mapper接口
 
 ```
-@MapperScan(value = "com.lw.springboot.mapper")@SpringBootApplicationpublic class SpringBoot06DataMybatisApplication {    public static void main(String[] args) {        SpringApplication.run(SpringBoot06DataMybatisApplication.class, args);    }}
+@MapperScan(value = "com.lw.springboot.mapper")
+@SpringBootApplication
+public class SpringBoot06DataMybatisApplication {
+	public static void main(String[] args) {  
+    	SpringApplication.run(SpringBoot06DataMybatisApplication.class, args);
+    }
+}
 ```
 
    ②配置文件版
 
-
-
-
-
-### 4、整合SpringData JPA
-
-### SpringBoot整合持久层技术
-
-1. 修改pom文件
-```xml
-<parent>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-parent</artifactId>
-    <version>2.1.6.RELEASE</version>
-</parent>
-<dependencies>
-    <!--SpringBoot启动器-->
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-web</artifactId>
-    </dependency>
-    <!--web启动器-->
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-thymeleaf</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>org.mybatis.spring.boot</groupId>
-        <artifactId>mybatis-spring-boot-starter</artifactId>
-        <version>1.1.1</version>
-    </dependency>
-    <!--mysql数据库驱动-->
-    <dependency>
-        <groupId>mysql</groupId>
-        <artifactId>mysql-connector-java</artifactId>
-        <version>5.1.41</version>
-    </dependency>
-    <!--druid数据库连接池-->
-    <dependency>
-        <groupId>com.alibaba</groupId>
-        <artifactId>druid</artifactId>
-        <version>1.0.9</version>
-    </dependency>
-</dependencies>
-```
-2. 添加 application.properties 全局配置文件
-* 文件位于classpath下创建：src/main/resources/application.properties
 ```properties
-spring.datasource.driver-class-name=com.mysql.jdbc.Driver
-spring.datasource.url=jdbc:mysql://localhost:3306/ssm_crud
-spring.datasource.username=root
-spring.datasource.password=123456
-spring.datasource.type=com.alibaba.druid.pool.DruidDataSource
+mybatis:
+  config-location: classpath:mybatis/mybatis-config.xml 指定全局配置文件的位置
+  mapper-locations: classpath:mybatis/mapper/*.xml  指定sql映射文件的位置
 ```
+
+### 4、 整合SpringData JPA
+
+1. 编写一个实体类（bean）和数据表进行映射，并且配置好映射关系；
+```java
+@JsonIgnoreProperties(value = "hibernateLazyInitializer")
+@Entity//告诉JPA这是一个实体类（和数据表映射的类）
+@Table(name = "tbl_user")//@Table指定和哪个数据表对应，如果省略默认表名是user
+public class User {
+    @Id//主键
+    @GeneratedValue(strategy = GenerationType.IDENTITY)//自增
+    private Integer id;
+    @Column(name = "last_name",length = 50) //数据表对应的一个列
+    private String lastName;
+    @Column//省略默认列名就是属性名
+    private String email;
+}
+```
+
+
+2. 编写一个Dao接口来操作实体类对应的数据表（Repository）
+
+```java
+//继承JpaRepository来完成对数据库的操作
+//第一个泛型添加要操作的实体类，第二个泛型添加操作实体类的主键类型
+public interface UserRepository extends JpaRepository<User,Integer> {
+}
+```
+3. 基本的配置JpaProperties
+```properties
+spring:
+	jpa:
+        hibernate:
+    	 #更新或创建数据表结构
+          ddl-auto: update
+    	#控制台显示SQL
+        show-sql: true
+```
+
+
+
+
+
 
 ## 所遇问题及解决方式
 
@@ -781,3 +786,54 @@ spring.datasource.type=com.alibaba.druid.pool.DruidDataSource
 * 原因
 
    mysql返回的时间有问题，比实际时间要早8小时。
+
+### 2、(not found)mapper.XxxMapper.xxx问题
+
+* 情景
+  ```
+  调用mapper里方法
+  ```
+  
+* 所遇问题
+
+  ```
+   Invalid bound statement (not found): com.lw.springboot.mapper.EmployeeMapper.getEmployeeById
+  ```
+
+* 解决方式&原因
+> 1. 检查xml文件的namespace是否正确（xml文件要与接口mapper所对应）
+> 2. Mapper.java的方法在Mapper.xml中没有，然后执行Mapper的方法
+> 3. Mapper.java的方法返回值是List,而select元素没有正确配置ResultMap,或者只配置ResultType
+> 4. 如果你确认没有以上问题,请任意修改下对应的xml文件,比如删除一个空行,保存.问题解决
+> 5. 看下mapper的XML配置路径是否正确
+> [原文链接](https://blog.csdn.net/q514004204/article/details/85769654)
+
+### 3、 com.lw.springboot.entity.User$HibernateProxy$BkyZ9P6O[&quot;hibernateLazyInitializer&quot;])
+
+* 情景
+
+  SpringBoot2.1.6整合SpringData JPA
+
+  - 编写一个实体类（bean）和数据表进行映射，并且配置好映射关系；
+
+  * 编写一个Dao接口来操作实体类对应的数据表（Repository）
+  * 基本的配置JpaProperties
+  * 通过Controller调用Dao接口中的方法
+
+* 所遇问题
+
+  ```
+  Type definition error: [simple type, class org.hibernate.proxy.pojo.bytebuddy.ByteBuddyInterceptor]; nested exception is com.fasterxml.jackson.databind.exc.InvalidDefinitionException: No serializer found for class org.hibernate.proxy.pojo.bytebuddy.ByteBuddyInterceptor and no properties discovered to create BeanSerializer (to avoid exception, disable SerializationFeature.FAIL_ON_EMPTY_BEANS) (through reference chain: com.lw.springboot.entity.User$HibernateProxy$BkyZ9P6O[&quot;hibernateLazyInitializer&quot;])
+  ```
+
+* 解决方式
+
+  实体类上添加注解：`@JsonIgnoreProperties(value = "hibernateLazyInitializer")`
+
+  @JsonIgnoreProperties：标注指定属性不用转化为json
+
+* 原因
+
+  jsonplugin用的是java的内审机制.hibernate会给被管理的实体类加入一个hibernateLazyInitializer属性,jsonplugin会把hibernateLazyInitializer也拿出来操作,并读取里面一个不能被反射操作的属性就产生了这个异常。
+
+  [原文链接](https://blog.csdn.net/a57565587/article/details/43151239)
