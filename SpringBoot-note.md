@@ -476,6 +476,53 @@ public class MyMvcConfig implements WebMvcConfigurer {
 | 修改 | updateEmp?id=xxx&xxx=xx   | emp/{id}---PUT    |
 | 删除 | deleteEmp?id=1            | emp/{id}---DELETE |
 
+## ================
+
+## Docker
+
+> Docker 是一个开源的应用容器引擎；
+>
+> Docker 支持将软件编译成一个镜像；在镜像中各种软件做好配置，将镜像发布出去，其他使用者可以使用这个镜像；
+>
+> 运行中这个镜像称为容器，容器启动时非常快速的。
+
+### 1、 Docker的核心概念
+
+docker主机（Host）：安装了Docker程序的机器；
+
+docker客户端（Client）：连接docker主机进行操作；
+
+docker仓库（Registry）：用来保存各种打包好的软件镜像；
+
+docker镜像（Images）：软件打包好的镜像，放在docker仓库中；
+
+docker容器（Container）：镜像启动后的实例称为一个容器，容器是独立运行的一个或一组应用。
+
+### 2、 安装Docker
+
+> 使用步骤：
+>
+> 1. 安装Docker；
+> 2. 去Docker仓库找到这个软件对应的镜像；
+> 3. 使用Docker运行这个镜像，这个镜像就会生成一个Docker容器；
+> 4. 对容器的启动停止就是对软件的启动停止。
+
+#### 安装Linux
+
+#### 在Linux上安装docker
+
+### 3、 Docker常用操作
+
+#### 1. 镜像操作
+
+#### 2. 容器操作
+
+#### 3. 安装Mysql
+
+
+
+## ================
+
 ## SpringBoot与数据访问
 
 > https://blog.csdn.net/qq_36505948/article/details/82056017
@@ -532,7 +579,7 @@ spring:
     username: root
     password: 123456
     driver-class-name: com.mysql.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/ssm_crud
+    url: jdbc:mysql://localhost:3306/xxx_table?serverTimezone=Asia/Shanghai
     type: com.alibaba.druid.pool.DruidDataSource
 #   数据源其他配置
     initialSize: 5
@@ -837,3 +884,76 @@ spring:
   jsonplugin用的是java的内审机制.hibernate会给被管理的实体类加入一个hibernateLazyInitializer属性,jsonplugin会把hibernateLazyInitializer也拿出来操作,并读取里面一个不能被反射操作的属性就产生了这个异常。
 
   [原文链接](https://blog.csdn.net/a57565587/article/details/43151239)
+
+### 4、静态资源问题
+
+- 情景
+
+  * 为项目增添登录页面。
+
+  * 技术涉及
+    * *.html对静态资源的访问；
+    * 添加拦截器；
+    * 国际化。
+
+- 所遇问题
+
+  静态资源无法访问/访问异常；
+
+  添加拦截器后静态资源被拦截；
+
+- 解决方式
+
+  ```java
+  @Configuration
+  public class WebMvcConfig implements WebMvcConfigurer {
+  
+      /**
+       * 映射文件路径
+       */
+      public void addResourceHandlers(ResourceHandlerRegistry registry){
+          registry.addResourceHandler("swagger-ui.html")
+                  .addResourceLocations("classpath:/META-INF/resources/");
+  
+          registry.addResourceHandler("/webjars/**")
+                  .addResourceLocations("classpath:/META-INF/resources/webjars/");
+  	    //映射静态资源
+          registry.addResourceHandler("/**")
+                  .addResourceLocations("classpath:/static/");
+  
+      }
+      /**
+       * 路径配置
+       */
+      @Override
+      public void addViewControllers(ViewControllerRegistry registry){
+          WebMvcConfigurer.super.addViewControllers(registry);
+          registry.addViewController("/").setViewName("login");
+          registry.addViewController("login").setViewName("login");
+          registry.addViewController("/index.html").setViewName("login");
+          registry.addViewController("/main.html").setViewName("main");
+      }
+      /**
+       * 注册拦截器
+       */
+      @Override
+      public void addInterceptors(InterceptorRegistry registry) {
+          registry.addInterceptor(new LoginHandlerInterceptor()).addPathPatterns("/**")
+              	//拦截的所有路径中除外的路径
+                  .excludePathPatterns("/","/login","/index.html","/static/**");
+      }
+      @Bean
+      public LocaleResolver localeResolver(){
+          return new MyLocaleResolver();
+      }
+  }
+  ```
+
+- 原因
+
+  没有映射静态资源路径并且在注册拦截器时，没有规避静态资源，所以静态资源无法访问/访问异常。
+
+> 待解决的现象：（估计得了解内部处理原理才知晓）
+>
+> 以上配置后仍然偶尔有静态资源无法访问的情况，在application.properties中添加配置：`spring.mvc.static-path-pattern=/static/**`后重新启动就可以了，将该配置注释掉再启动，无法访问的情况又消失。
+
